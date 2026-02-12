@@ -144,7 +144,42 @@ fn parse_shortcut(shortcut_str: &str) -> Result<Shortcut, String> {
     let normalized = shortcut_str
         .replace("Win+", "Super+")
         .replace("Ctrl+", "Control+");
-    
+    // 符号键 → Tauri Code 枚举名称
+    // 前端 ShortcutInput 使用 e.key 获取字面字符，但 Tauri 的 Shortcut 解析器
+    // 需要 Code 枚举名称（如 Backquote），因此这里做映射转换
+    let symbol_mappings: &[(&str, &str)] = &[
+        // 基础符号键
+        ("+`", "+Backquote"),
+        ("+-", "+Minus"),
+        ("+=", "+Equal"),
+        ("+[", "+BracketLeft"),
+        ("+]", "+BracketRight"),
+        ("+\\", "+Backslash"),
+        ("+;", "+Semicolon"),
+        ("+'", "+Quote"),
+        ("+,", "+Comma"),
+        ("+.", "+Period"),
+        ("+/", "+Slash"),
+        // Shift 后的符号键（按住 Shift 时 e.key 返回的是变体字符）
+        ("+~", "+Backquote"),
+        ("+_", "+Minus"),
+        ("+{", "+BracketLeft"),
+        ("+}", "+BracketRight"),
+        ("+|", "+Backslash"),
+        ("+:", "+Semicolon"),
+        ("+\"", "+Quote"),
+        ("+<", "+Comma"),
+        ("+>", "+Period"),
+        ("+?", "+Slash"),
+    ];
+    let mut normalized = normalized;
+    for (from, to) in symbol_mappings {
+        if normalized.ends_with(from) {
+            let prefix_len = normalized.len() - from.len();
+            normalized = format!("{}{}", &normalized[..prefix_len], to);
+            break;
+        }
+    }
     normalized.parse::<Shortcut>()
         .map_err(|e| format!("解析快捷键失败: {}", e))
 }
